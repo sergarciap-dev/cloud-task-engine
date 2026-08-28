@@ -1,8 +1,8 @@
-from fastapi import FastAPI, HTTPException
+from fastapi import FastAPI
 from pydantic import BaseModel, Field
 from typing import Optional
 import uuid
-from datetime import datetime
+from datetime import datetime, timezone
 from src.services.aws_service import aws_service
 
 app = FastAPI(
@@ -25,15 +25,14 @@ class TaskResponse(BaseModel):
 
 @app.get("/health", tags=["Health"])
 def health_check():
-    return {"status": "ok", "timestamp": datetime.utcnow().isoformat()}
+    return {"status": "ok", "timestamp": datetime.now(timezone.utc).isoformat()}
 
 @app.post("/tasks", response_model=TaskResponse, status_code=201, tags=["Tasks"])
 def create_task(payload: TaskCreateRequest):
     task_id = str(uuid.uuid4())
     file_key = f"uploads/{task_id}.{payload.file_type}"
-    created_at = datetime.utcnow().isoformat()
+    created_at = datetime.now(timezone.utc).isoformat()
 
-    # Generar URL de carga directa a S3
     try:
         upload_url = aws_service.generate_presigned_upload_url(file_key=file_key)
     except Exception:
@@ -49,11 +48,9 @@ def create_task(payload: TaskCreateRequest):
         "created_at": created_at
     }
 
-    # Persistir en DynamoDB
     try:
         aws_service.save_task(task_item)
-    except Exception as e:
-        # Si DynamoDB local no está inicializado, permitimos continuar informando el estado
+    except Exception:
         pass
 
     return {
