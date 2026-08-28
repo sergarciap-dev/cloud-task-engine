@@ -8,13 +8,15 @@ from src.services.aws_service import aws_service
 app = FastAPI(
     title="Cloud Task & Report Engine",
     description="API para procesamiento asíncrono de tareas y reportes en AWS",
-    version="0.1.0"
+    version="0.1.0",
 )
+
 
 class TaskCreateRequest(BaseModel):
     title: str = Field(..., min_length=3, max_length=100)
     description: Optional[str] = None
     file_type: str = Field(..., pattern="^(csv|json)$")
+
 
 class TaskResponse(BaseModel):
     task_id: str
@@ -22,6 +24,7 @@ class TaskResponse(BaseModel):
     status: str
     created_at: str
     upload_url: Optional[str] = None
+
 
 class TaskDetailResponse(BaseModel):
     task_id: str
@@ -33,9 +36,11 @@ class TaskDetailResponse(BaseModel):
     created_at: str
     result_summary: Optional[Any] = None
 
+
 @app.get("/health", tags=["Health"])
 def health_check():
     return {"status": "ok", "timestamp": datetime.now(timezone.utc).isoformat()}
+
 
 @app.post("/tasks", response_model=TaskResponse, status_code=201, tags=["Tasks"])
 def create_task(payload: TaskCreateRequest):
@@ -55,7 +60,7 @@ def create_task(payload: TaskCreateRequest):
         "file_type": payload.file_type,
         "file_key": file_key,
         "status": "PENDING_UPLOAD",
-        "created_at": created_at
+        "created_at": created_at,
     }
 
     try:
@@ -69,8 +74,9 @@ def create_task(payload: TaskCreateRequest):
         "title": payload.title,
         "status": task_item["status"],
         "created_at": created_at,
-        "upload_url": upload_url
+        "upload_url": upload_url,
     }
+
 
 @app.get("/tasks/{task_id}", response_model=TaskDetailResponse, tags=["Tasks"])
 def get_task(task_id: str):
@@ -87,5 +93,5 @@ def get_task(task_id: str):
         "file_key": item["file_key"],
         "status": item["status"],
         "created_at": item["created_at"],
-        "result_summary": item.get("result_summary")
+        "result_summary": item.get("result_summary"),
     }

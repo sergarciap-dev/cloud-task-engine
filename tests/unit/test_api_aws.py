@@ -9,11 +9,13 @@ from src.core.config import settings
 
 client = TestClient(app)
 
+
 @pytest.fixture
 def aws_credentials():
     os.environ["AWS_ACCESS_KEY_ID"] = "testing"
     os.environ["AWS_SECRET_ACCESS_KEY"] = "testing"
     os.environ["AWS_DEFAULT_REGION"] = "us-east-1"
+
 
 @pytest.fixture
 def setup_aws_mock(aws_credentials):
@@ -28,7 +30,7 @@ def setup_aws_mock(aws_credentials):
             TableName=settings.DYNAMODB_TABLE_NAME,
             KeySchema=[{"AttributeName": "taskId", "KeyType": "HASH"}],
             AttributeDefinitions=[{"AttributeName": "taskId", "AttributeType": "S"}],
-            BillingMode="PAY_PER_REQUEST"
+            BillingMode="PAY_PER_REQUEST",
         )
 
         # SQS Mock
@@ -36,16 +38,18 @@ def setup_aws_mock(aws_credentials):
         sqs.create_queue(QueueName=settings.SQS_QUEUE_NAME)
         yield
 
+
 def test_health_check():
     response = client.get("/health")
     assert response.status_code == 200
     assert response.json()["status"] == "ok"
 
+
 def test_create_task_success(setup_aws_mock):
     payload = {
         "title": "Procesamiento de Métricas",
         "description": "Reporte mensual de ventas",
-        "file_type": "csv"
+        "file_type": "csv",
     }
     response = client.post("/tasks", json=payload)
     assert response.status_code == 201
@@ -55,13 +59,12 @@ def test_create_task_success(setup_aws_mock):
     assert "task_id" in data
     assert "upload_url" in data
 
+
 def test_create_task_invalid_file_type():
-    payload = {
-        "title": "Archivo Malicioso",
-        "file_type": "exe"
-    }
+    payload = {"title": "Archivo Malicioso", "file_type": "exe"}
     response = client.post("/tasks", json=payload)
     assert response.status_code == 422
+
 
 def test_get_task_success(setup_aws_mock):
     """Valida la consulta de una tarea existente."""
@@ -77,6 +80,7 @@ def test_get_task_success(setup_aws_mock):
     assert data["task_id"] == task_id
     assert data["title"] == payload["title"]
     assert data["status"] == "PENDING_UPLOAD"
+
 
 def test_get_task_not_found(setup_aws_mock):
     """Valida error 404 al consultar un ID inexistente."""
