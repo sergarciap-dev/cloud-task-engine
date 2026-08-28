@@ -1,6 +1,6 @@
-from fastapi import FastAPI
+from fastapi import FastAPI, HTTPException
 from pydantic import BaseModel, Field
-from typing import Optional
+from typing import Optional, Any
 import uuid
 from datetime import datetime, timezone
 from src.services.aws_service import aws_service
@@ -22,6 +22,16 @@ class TaskResponse(BaseModel):
     status: str
     created_at: str
     upload_url: Optional[str] = None
+
+class TaskDetailResponse(BaseModel):
+    task_id: str
+    title: str
+    description: Optional[str] = None
+    file_type: str
+    file_key: str
+    status: str
+    created_at: str
+    result_summary: Optional[Any] = None
 
 @app.get("/health", tags=["Health"])
 def health_check():
@@ -50,6 +60,7 @@ def create_task(payload: TaskCreateRequest):
 
     try:
         aws_service.save_task(task_item)
+        aws_service.send_task_to_queue(task_item)
     except Exception:
         pass
 
@@ -59,4 +70,22 @@ def create_task(payload: TaskCreateRequest):
         "status": task_item["status"],
         "created_at": created_at,
         "upload_url": upload_url
+    }
+
+@app.get("/tasks/{task_id}", response_model=TaskDetailResponse, tags=["Tasks"])
+def get_task(task_id: str):
+    """Obtiene el estado actual y resultado de una tarea."""
+    item = aws_service.get_task(task_id)
+    if not item:
+        raise HTTPException(status_code=404, detail="Tarea no encontrada")
+
+    return {
+        "task_id": item["taskId"],
+        "title": item["title"],
+        "description": item.get("description"),
+        "file_type": item["file_type"],
+        "file_key": item["file_key"],
+        "status": item["status"],
+        "created_at": item["created_at"],
+        "result_summary": item.get("result_summary")
     }
