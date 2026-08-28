@@ -8,6 +8,7 @@ on:
 
 jobs:
   test:
+    name: Backend Unit Tests
     runs-on: ubuntu-latest
 
     steps:
@@ -25,6 +26,27 @@ jobs:
           python -m pip install --upgrade pip
           pip install -r requirements.txt
 
-      - name: Ejecutar pruebas unitarias
+      - name: Ejecutar pruebas unitarias con Moto
         run: |
           pytest -v
+
+  terraform-check:
+    name: Terraform Lint & Validate
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout del repositorio
+        uses: actions/checkout@v4
+
+      - name: Configurar Terraform
+        uses: hashicorp/setup-terraform@v3
+        with:
+          terraform_version: "1.7.0"
+
+      - name: Verificar formato
+        run: terraform -chdir=terraform fmt -check
+
+      - name: Inicializar y Validar configuración
+        run: |
+          terraform -chdir=terraform init -backend=false
+          terraform -chdir=terraform validate
