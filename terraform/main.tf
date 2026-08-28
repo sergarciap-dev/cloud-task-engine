@@ -40,7 +40,7 @@ resource "aws_s3_bucket" "reports_bucket" {
   }
 }
 
-# Bloqueo de acceso público S3
+# Bloqueo de acceso publico S3
 resource "aws_s3_bucket_public_access_block" "reports_bucket_block" {
   bucket = aws_s3_bucket.reports_bucket.id
 
@@ -50,10 +50,10 @@ resource "aws_s3_bucket_public_access_block" "reports_bucket_block" {
   restrict_public_buckets = true
 }
 
-# 3. SQS Queue para procesamiento asíncrono
+# 3. SQS Queue para procesamiento asincrono
 resource "aws_sqs_queue" "tasks_queue" {
-  name                      = "tasks-processing-queue-${var.environment}"
-  message_retention_seconds = 86400
+  name                       = "tasks-processing-queue-${var.environment}"
+  message_retention_seconds  = 86400
   visibility_timeout_seconds = 60
 
   tags = {
